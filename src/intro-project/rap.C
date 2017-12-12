@@ -33,11 +33,11 @@ typedef enum {
 //
 // is called `packetPayload`. We'll talk about pointers a bit more in another
 // file. 
-struct dataPacket {
+typedef struct dataPacket {
   char packetType;
   char packetDataLength;
   char* packetPayload;
-};
+} dataPacket;
 
 int main(int argc, char** argv) {
   helloArray test;
@@ -54,8 +54,8 @@ int main(int argc, char** argv) {
   outbound.packetDataLength = strlen(WHERE);
 
   // The follwoing lines are bad. WHY?
-  outbound.packetPayload[0] = 'a';
-  strcpy( outbound.packetPayload, WHERE );
+  // outbound.packetPayload[0] = 'a';
+  // strcpy( outbound.packetPayload, WHERE );
 
   // look up the malloc function 
   // allocate enough memory for "Where is my Lambda swag?"
@@ -75,11 +75,11 @@ int main(int argc, char** argv) {
   free(outbound.packetPayload);
  
   // The memory is still here! This is a safety violation. 
-  puts( (outbound.packetPayload) );
+  // puts( (outbound.packetPayload) );
 
   // can we change it?
-  outbound.packetPayload[0] = 'f';
-  puts( (outbound.packetPayload) );
+  // outbound.packetPayload[0] = 'f';
+  // puts( (outbound.packetPayload) );
 
   // we can! This is a terrible error waiting to happen
 

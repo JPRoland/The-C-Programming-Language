@@ -91,7 +91,13 @@ struct radDoublyLinkedList {
 //
 // It should return an instance of the `radDoublyLinkedList` struct.
 struct radDoublyLinkedList* doTheStructAssignmentTest() {
-  // Implement this function
+  struct radDoublyLinkedList* node 
+          = malloc(sizeof(struct radDoublyLinkedList));
+  
+  node->last = NULL;
+  node->next = NULL;
+
+  return node;
 }
 
 // Adds a new doubly-linked list node to an existing node 
@@ -99,7 +105,13 @@ struct radDoublyLinkedList* doTheStructAssignmentTest() {
 // More memory will need to be allocated to the node, and its struct properties
 // need to be initialized accordingly
 void radDoublyLinkedListAdd(struct radDoublyLinkedList* list, int value) {
-  // Implement this function
+  struct radDoublyLinkedList* newNode = doTheStructAssignmentTest();
+  newNode->value = value;
+  while(list->next != NULL) {
+    list = list->next;
+  }
+  list->next = newNode;
+  newNode->last = list;
 }
 
 /***********************************************
