@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define P3 3
 #define P6 6
@@ -26,8 +27,11 @@ struct ppm {
  */
 int write_ppm(struct ppm *image, char *filename)
 {
-	// Implement me!
-	// Use read_ppm as a model
+	FILE* fp = fopen(filename, "wb");
+	fprintf(fp, "P%d\n%d %d\n%d\n", image->type, image->width, image->height, image->maxval);
+
+	fwrite(image->data, 1, 3*image->width*image->height, fp);
+	fclose(fp);
 
 	return 0;
 }
@@ -78,6 +82,7 @@ struct ppm *read_ppm(char *filename)
 	FILE *fp;
 	char buffer[128];
 	int width, height;
+	int max_pixel;
 	struct ppm *ppm;
 
 	fp = fopen(filename, "rb");
@@ -100,6 +105,7 @@ struct ppm *read_ppm(char *filename)
 
 	// Read the max pixel value
 	fgets(buffer, sizeof buffer, fp);
+	sscanf(buffer, "%d", &max_pixel);
 
 	// TODO do the right thing with this
 	// Assume it's 255 for now
@@ -110,6 +116,7 @@ struct ppm *read_ppm(char *filename)
 	ppm = malloc(sizeof(struct ppm));
 	ppm->width = width;
 	ppm->height = height;
+	ppm->maxval = max_pixel;
 
 	// Allocate room for the data
 	ppm->data = malloc(total_bytes);
@@ -120,6 +127,8 @@ struct ppm *read_ppm(char *filename)
 	if (bytes_read != total_bytes) {
 		fprintf(stderr, "only read %d/%d bytes", bytes_read, total_bytes);
 	}
+
+	fclose(fp);
 
 	return ppm;
 }
@@ -136,7 +145,7 @@ void free_ppm(struct ppm *p)
 /**
  * Get pixel
  */
-unsigned char *get_pixel(struct ppm *image, int col, int row, unsigned char pixel[3])
+unsigned char *get_pixel(struct ppm *image, int row, int col, unsigned char pixel[3])
 {
 	int index;
 
@@ -155,9 +164,13 @@ unsigned char *get_pixel(struct ppm *image, int col, int row, unsigned char pixe
  */
 void put_pixel(struct ppm *image, int row, int col, unsigned char *pixel)
 {
-	// Implement me!
+	int index;
 
-	// Use get_pixel() as a model
+	index = (row * image->width * 3) + (col * 3);
+
+	image->data[index+0] = pixel[0];
+	image->data[index+1] = pixel[1];
+	image->data[index+2] = pixel[2];
 }
 
 /**
@@ -179,20 +192,55 @@ void stamp_image(struct ppm *image, struct ppm *dest_image, int dest_row, int de
 /**
  * MAIN
  */
-int main(void)
+int main(int argc, char** argv)
 {
-	struct ppm *p = read_ppm("vim.ppm");
-	unsigned char pixel[3] = {0,0,0};
+	char *output_file = NULL;
+	char *stamp = NULL;
+  int index;
+  int c;
 
-	get_pixel(p, 20, 20, pixel);
+  opterr = 0;
 
-	printf("pixel is %u, %u, %u\n", pixel[0], pixel[1], pixel[2]);
+  while ((c = getopt (argc, argv, "o:")) != -1)
+    switch (c) 
+    {
+      case 'o':
+        output_file = optarg;
+        break;
+      case '?':
+        if (optopt == 'o')
+          fprintf (stderr, "Option -o requires an argument\n");
+        else
+          fprintf (stderr, "Unknown option '-%c'\n", optopt);
+        return 1;
+      default:
+        abort ();
+    }
 
-	// TODO
-	// Parse command line
-	// Create new output image
-	// Stamp images at the locations specified on the command line
-	// Save output image to disk
+	struct ppm *dest_p = create_ppm(1024, 768);
+
+	for(index = optind; index < argc; index++) {
+		stamp = argv[index];
+		if(index + 2 >= argc) break;
+		int row = atoi(argv[index + 1]);
+		int col = atoi(argv[index + 2]);
+		struct ppm *p = read_ppm(stamp);
+		if (p == NULL) {
+			printf("File %s not found.\n", stamp);
+			continue;
+		} else if (p->width + row > dest_p->width || p->height + col > dest_p->height) {
+			printf("Stamp %s does not fit on image.\n", stamp);
+			continue;
+		}
+
+		stamp_image(p, dest_p, row, col);
+		free_ppm(p);
+
+		index = index + 2;
+	}
+	
+	write_ppm(dest_p, output_file);
+	free_ppm(dest_p);
 
 	return 0;
 }
